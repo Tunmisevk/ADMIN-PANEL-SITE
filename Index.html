@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AdminPulse — Analytics Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#000;--bg2:#06060f;--bg3:#0b0b1a;
+    --border:#1a1a35;--blue:#1a6fff;--blue2:#4d8fff;
+    --text:#fff;--text2:#8899cc;--text3:#334466;
+    --green:#00cc88;--red:#ff4466;--orange:#ff8c00;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;display:flex;min-height:100vh;}
+
+  /* SIDEBAR */
+  .sidebar{
+    width:240px;background:var(--bg2);
+    border-right:1px solid var(--border);
+    display:flex;flex-direction:column;
+    position:fixed;top:0;left:0;bottom:0;
+    z-index:10;
+  }
+  .sidebar-logo{
+    padding:24px 20px;border-bottom:1px solid var(--border);
+    font-family:'Syne',sans-serif;font-weight:800;font-size:18px;
+  }
+  .sidebar-logo span{color:var(--blue2);}
+  .sidebar-nav{flex:1;padding:16px 12px;overflow-y:auto;}
+  .nav-group-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);padding:12px 8px 6px;}
+  .nav-item{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 12px;border-radius:8px;
+    font-size:14px;color:var(--text2);cursor:pointer;
+    transition:all 0.2s;margin-bottom:2px;
+    text-decoration:none;
+  }
+  .nav-item:hover{background:rgba(26,111,255,0.08);color:#fff;}
+  .nav-item.active{background:rgba(26,111,255,0.12);color:#fff;border-left:2px solid var(--blue);}
+  .nav-icon{width:18px;text-align:center;font-size:16px;}
+  .nav-badge{margin-left:auto;background:var(--blue);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px;}
+  .sidebar-user{
+    padding:16px;border-top:1px solid var(--border);
+    display:flex;align-items:center;gap:10px;
+  }
+  .user-avatar{
+    width:36px;height:36px;border-radius:50%;
+    background:linear-gradient(135deg,var(--blue),var(--blue2));
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:14px;flex-shrink:0;
+  }
+  .user-name{font-size:13px;font-weight:600;}
+  .user-role{font-size:11px;color:var(--text3);}
+
+  /* MAIN */
+  .main{margin-left:240px;flex:1;display:flex;flex-direction:column;min-height:100vh;}
+
+  /* TOP BAR */
+  .topbar{
+    height:64px;border-bottom:1px solid var(--border);
+    padding:0 32px;display:flex;align-items:center;
+    justify-content:space-between;background:rgba(0,0,0,0.8);
+    backdrop-filter:blur(12px);position:sticky;top:0;z-index:9;
+  }
+  .page-title{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;}
+  .topbar-right{display:flex;align-items:center;gap:12px;}
+  .topbar-search{
+    display:flex;align-items:center;gap:8px;
+    background:var(--bg2);border:1px solid var(--border);
+    border-radius:8px;padding:7px 14px;width:220px;
+  }
+  .topbar-search input{background:none;border:none;outline:none;color:var(--text);font-size:13px;width:100%;font-family:'DM Sans',sans-serif;}
+  .topbar-search input::placeholder{color:var(--text3);}
+  .topbar-btn{
+    width:36px;height:36px;border-radius:8px;
+    border:1px solid var(--border);background:none;color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;font-size:16px;transition:border-color 0.2s;position:relative;
+  }
+  .topbar-btn:hover{border-color:var(--blue);}
+  .notif-dot{
+    position:absolute;top:6px;right:6px;
+    width:7px;height:7px;background:var(--red);border-radius:50%;
+  }
+  .date-range{
+    padding:7px 14px;background:var(--bg2);
+    border:1px solid var(--border);border-radius:8px;
+    font-size:13px;color:var(--text2);cursor:pointer;
+  }
+
+  /* CONTENT */
+  .content{padding:32px;flex:1;}
+
+  /* KPI CARDS */
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;}
+  .kpi-card{
+    background:var(--bg2);border:1px solid var(--border);
+    border-radius:12px;padding:24px;
+    transition:border-color 0.2s;
+  }
+  .kpi-card:hover{border-color:rgba(26,111,255,0.2);}
+  .kpi-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .kpi-label{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--text2);}
+  .kpi-icon{
+    width:36px;height:36px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;font-size:16px;
+  }
+  .icon-blue{background:rgba(26,111,255,0.1);}
+  .icon-green{background:rgba(0,204,136,0.1);}
+  .icon-orange{background:rgba(255,140,0,0.1);}
+  .icon-red{background:rgba(255,68,102,0.1);}
+  .kpi-value{font-family:'Syne',sans-serif;font-weight:800;font-size:32px;line-height:1;margin-bottom:8px;}
+  .kpi-change{display:flex;align-items:center;gap:4px;font-size:12px;}
+  .change-up{color:var(--green);}
+  .change-down{color:var(--red);}
+  .kpi-sub{color:var(--text3);}
+
+  /* CHARTS ROW */
+  .charts-row{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:32px;}
+  .chart-card{
+    background:var(--bg2);border:1px solid var(--border);
+    border-radius:12px;padding:24px;
+  }
+  .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+  .card-title{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;}
+  .card-actions{display:flex;gap:6px;}
+  .chip{
+    padding:4px 12px;border-radius:100px;font-size:12px;
+    border:1px solid var(--border);color:var(--text2);cursor:pointer;
+    transition:all 0.2s;background:none;
+  }
+  .chip.active,.chip:hover{background:var(--blue);border-color:var(--blue);color:#fff;}
+  .chart-wrap{position:relative;height:220px;}
+
+  /* BOTTOM ROW */
+  .bottom-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+
+  /* TABLE */
+  .table-card{
+    background:var(--bg2);border:1px solid var(--border);
+    border-radius:12px;padding:24px;
+  }
+  table{width:100%;border-collapse:collapse;}
+  th{
+    font-size:11px;letter-spacing:1px;text-transform:uppercase;
+    color:var(--text3);padding:0 0 12px;text-align:left;font-weight:500;
+    border-bottom:1px solid var(--border);
+  }
+  td{padding:12px 0;font-size:14px;border-bottom:1px solid rgba(26,26,53,0.5);}
+  tr:last-child td{border-bottom:none;}
+  .user-cell{display:flex;align-items:center;gap:10px;}
+  .u-avatar{
+    width:32px;height:32px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:700;flex-shrink:0;
+  }
+  .u-name{font-weight:500;}
+  .u-email{font-size:12px;color:var(--text3);}
+  .status-badge{
+    display:inline-block;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600;
+  }
+  .s-active{background:rgba(0,204,136,0.1);color:var(--green);}
+  .s-inactive{background:rgba(255,68,102,0.1);color:var(--red);}
+  .s-pending{background:rgba(255,140,0,0.1);color:var(--orange);}
+
+  /* ACTIVITY */
+  .activity-list{display:flex;flex-direction:column;gap:12px;}
+  .activity-item{
+    display:flex;align-items:flex-start;gap:12px;
+    padding:14px;background:var(--bg3);
+    border:1px solid var(--border);border-radius:8px;
+  }
+  .activity-dot{
+    width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;
+  }
+  .activity-text{font-size:13px;line-height:1.5;}
+  .activity-time{font-size:11px;color:var(--text3);margin-top:2px;}
+
+  @media(max-width:900px){
+    .sidebar{display:none;}
+    .main{margin-left:0;}
+    .kpi-grid{grid-template-columns:repeat(2,1fr);}
+    .charts-row,.bottom-row{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">Admin<span>Pulse</span></div>
+  <nav class="sidebar-nav">
+    <div class="nav-group-label">Main</div>
+    <a class="nav-item active"><span class="nav-icon">📊</span>Dashboard</a>
+    <a class="nav-item"><span class="nav-icon">📈</span>Analytics</a>
+    <a class="nav-item"><span class="nav-icon">👥</span>Users <span class="nav-badge">24</span></a>
+    <a class="nav-item"><span class="nav-icon">📦</span>Products</a>
+    <a class="nav-item"><span class="nav-icon">🛒</span>Orders <span class="nav-badge">5</span></a>
+    <div class="nav-group-label">Finance</div>
+    <a class="nav-item"><span class="nav-icon">💰</span>Revenue</a>
+    <a class="nav-item"><span class="nav-icon">🧾</span>Invoices</a>
+    <div class="nav-group-label">System</div>
+    <a class="nav-item"><span class="nav-icon">⚙️</span>Settings</a>
+    <a class="nav-item"><span class="nav-icon">🔒</span>Security</a>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar">FT</div>
+    <div>
+      <div class="user-name">Tunmise David</div>
+      <div class="user-role">Super Admin</div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="page-title">Dashboard Overview</div>
+    <div class="topbar-right">
+      <div class="topbar-search"><span style="color:var(--text3)">🔍</span><input type="text" placeholder="Search..."></div>
+      <div class="date-range">Jun 1 – Jun 4, 2026</div>
+      <button class="topbar-btn">🔔<div class="notif-dot"></div></button>
+      <button class="topbar-btn">⚙️</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- KPI -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-header"><span class="kpi-label">Total Revenue</span><div class="kpi-icon icon-blue">💰</div></div>
+        <div class="kpi-value">$84,210</div>
+        <div class="kpi-change"><span class="change-up">↑ 12.5%</span><span class="kpi-sub">vs last month</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-header"><span class="kpi-label">Active Users</span><div class="kpi-icon icon-green">👥</div></div>
+        <div class="kpi-value">3,842</div>
+        <div class="kpi-change"><span class="change-up">↑ 8.1%</span><span class="kpi-sub">vs last month</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-header"><span class="kpi-label">New Orders</span><div class="kpi-icon icon-orange">🛒</div></div>
+        <div class="kpi-value">1,204</div>
+        <div class="kpi-change"><span class="change-down">↓ 3.2%</span><span class="kpi-sub">vs last month</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-header"><span class="kpi-label">Conversion</span><div class="kpi-icon icon-blue">📈</div></div>
+        <div class="kpi-value">5.7%</div>
+        <div class="kpi-change"><span class="change-up">↑ 0.4%</span><span class="kpi-sub">vs last month</span></div>
+      </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="card-header">
+          <span class="card-title">Revenue Overview</span>
+          <div class="card-actions">
+            <button class="chip">Week</button>
+            <button class="chip active">Month</button>
+            <button class="chip">Year</button>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="revenueChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="card-header"><span class="card-title">Traffic Sources</span></div>
+        <div class="chart-wrap"><canvas id="trafficChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- BOTTOM ROW -->
+    <div class="bottom-row">
+      <div class="table-card">
+        <div class="card-header">
+          <span class="card-title">Recent Users</span>
+          <button class="chip">View All</button>
+        </div>
+        <table>
+          <thead><tr><th>User</th><th>Plan</th><th>Status</th><th>Joined</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="user-cell"><div class="u-avatar" style="background:linear-gradient(135deg,#1a6fff,#4d8fff)">SC</div><div><div class="u-name">Sarah Chen</div><div class="u-email">s.chen@email.com</div></div></div></td>
+              <td style="color:var(--blue2)">Pro</td>
+              <td><span class="status-badge s-active">Active</span></td>
+              <td style="color:var(--text3);font-size:13px">Jun 1</td>
+            </tr>
+            <tr>
+              <td><div class="user-cell"><div class="u-avatar" style="background:linear-gradient(135deg,#00cc88,#009966)">MR</div><div><div class="u-name">Marcus Reid</div><div class="u-email">m.reid@email.com</div></div></div></td>
+              <td style="color:var(--text2)">Starter</td>
+              <td><span class="status-badge s-pending">Pending</span></td>
+              <td style="color:var(--text3);font-size:13px">Jun 2</td>
+            </tr>
+            <tr>
+              <td><div class="user-cell"><div class="u-avatar" style="background:linear-gradient(135deg,#ff8c00,#ff4466)">AO</div><div><div class="u-name">Amara Osei</div><div class="u-email">a.osei@email.com</div></div></div></td>
+              <td style="color:var(--orange)">Enterprise</td>
+              <td><span class="status-badge s-active">Active</span></td>
+              <td style="color:var(--text3);font-size:13px">Jun 3</td>
+            </tr>
+            <tr>
+              <td><div class="user-cell"><div class="u-avatar" style="background:linear-gradient(135deg,#9944ff,#6622cc)">JK</div><div><div class="u-name">James Kim</div><div class="u-email">j.kim@email.com</div></div></div></td>
+              <td style="color:var(--text2)">Starter</td>
+              <td><span class="status-badge s-inactive">Inactive</span></td>
+              <td style="color:var(--text3);font-size:13px">Jun 4</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-card">
+        <div class="card-header"><span class="card-title">Recent Activity</span></div>
+        <div class="activity-list">
+          <div class="activity-item">
+            <div class="activity-dot" style="background:var(--green)"></div>
+            <div><div class="activity-text">New order #4521 placed by Sarah Chen — $299.00</div><div class="activity-time">2 minutes ago</div></div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot" style="background:var(--blue2)"></div>
+            <div><div class="activity-text">User Marcus Reid upgraded to Pro plan</div><div class="activity-time">18 minutes ago</div></div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot" style="background:var(--orange)"></div>
+            <div><div class="activity-text">Low stock alert: Smart Watch Series X (4 left)</div><div class="activity-time">1 hour ago</div></div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot" style="background:var(--green)"></div>
+            <div><div class="activity-text">Monthly revenue target reached: $84,210</div><div class="activity-time">3 hours ago</div></div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot" style="background:var(--red)"></div>
+            <div><div class="activity-text">Failed login attempt detected from IP 192.168.1.x</div><div class="activity-time">5 hours ago</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Revenue Chart
+  const rCtx = document.getElementById('revenueChart').getContext('2d');
+  new Chart(rCtx, {
+    type:'line',
+    data:{
+      labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+      datasets:[{
+        label:'Revenue',
+        data:[42000,48000,45000,61000,55000,84210,0,0,0,0,0,0],
+        borderColor:'#1a6fff',
+        backgroundColor:'rgba(26,111,255,0.08)',
+        fill:true,
+        tension:0.4,
+        pointBackgroundColor:'#1a6fff',
+        pointRadius:4,
+        pointHoverRadius:6,
+      },{
+        label:'Last Year',
+        data:[35000,40000,38000,50000,46000,70000,0,0,0,0,0,0],
+        borderColor:'rgba(255,255,255,0.15)',
+        backgroundColor:'transparent',
+        fill:false,
+        tension:0.4,
+        pointRadius:0,
+        borderDash:[4,4],
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#0b0b1a',borderColor:'#1a1a35',borderWidth:1}},
+      scales:{
+        x:{grid:{color:'rgba(26,26,53,0.5)'},ticks:{color:'#334466',font:{family:'DM Sans',size:11}}},
+        y:{grid:{color:'rgba(26,26,53,0.5)'},ticks:{color:'#334466',font:{family:'DM Sans',size:11},callback:v=>'$'+v/1000+'k'}}
+      }
+    }
+  });
+
+  // Doughnut
+  const tCtx = document.getElementById('trafficChart').getContext('2d');
+  new Chart(tCtx, {
+    type:'doughnut',
+    data:{
+      labels:['Organic','Direct','Social','Email','Paid'],
+      datasets:[{
+        data:[35,25,20,12,8],
+        backgroundColor:['#1a6fff','#4d8fff','#00cc88','#ff8c00','#9944ff'],
+        borderWidth:0,
+        hoverOffset:8,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      cutout:'70%',
+      plugins:{
+        legend:{
+          position:'bottom',
+          labels:{color:'#8899cc',font:{family:'DM Sans',size:11},padding:16,boxWidth:10,boxHeight:10}
+        },
+        tooltip:{backgroundColor:'#0b0b1a',borderColor:'#1a1a35',borderWidth:1}
+      }
+    }
+  });
+
+  document.querySelectorAll('.chip').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      this.closest('.card-actions')?.querySelectorAll('.chip').forEach(b=>b.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+  document.querySelectorAll('.nav-item').forEach(item=>{
+    item.addEventListener('click',function(){
+      document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>
